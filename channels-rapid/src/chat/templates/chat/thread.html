@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>Thread for {% if user != object.first %}{{ object.first }}{% else %}{{ object.second }}{% endif %}</h3>
+<ul id='chat-items'>
+{% for chat in object.chatmessage_set.all %}
+
+<li>{{ chat.message }} via {{ chat.user }}</li>
+
+{% endfor %}
+</ul>
+
+<form id='form' method='POST'> {% csrf_token %}
+{{form.as_p }}
+<input type='submit' class='btn btn-primary'/>
+</form>
+
+{% endblock %}
+
+{% block script %}
+
+<script>
+// websocket scripts
+
+const msgForm = $('#form')
+const unorderedList = $('#chat-items')
+console.log(unorderedList)
+let chatSocket = new WebSocket(
+    `ws://${window.location.host}${window.location.pathname}`
+);
+    
+chatSocket.onmessage = function(e) {
+    console.log('messsage',JSON.parse(e.data).message);
+    unorderedList.append(`<li>
+    ${JSON.parse(e.data).message} by ${JSON.parse(e.data).user}
+    </li>`)
+   };
+
+chatSocket.onopen = function(e) {
+    console.log('opened',e);
+    msgForm.submit((event)=>{
+    event.preventDefault();
+    const msg = document.getElementById("id_message");
+
+    console.log('FOrm submission prevented',msg.value);
+    chatSocket.send(JSON.stringify({message:msg.value}))
+    msg.value = ''
+    })
+   };
+
+chatSocket.onerror = function(e) {
+    console.log('error',e);
+   };
+
+chatSocket.onclose = function(e) {
+    console.log('Closed',e);
+};
+</script>
+
+</script>
+{% endblock %}
